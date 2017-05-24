@@ -1,0 +1,268 @@
+<html>
+<head>
+<link rel="SHORTCUT ICON" href="images/favicon.ico" type="image/x-icon" />
+<link rel="ICON" href="images/favicon.ico" type="image/ico" />
+<title>Datatouille</title>
+<style>
+body {
+  color: black;
+  background-color: white;
+  font-family: tahoma, droid sans;  
+}
+
+#content {
+  float: left;
+  width: 300px;
+  height: 100%;
+  overflow-y:scroll;
+}
+
+#title {
+ font-size:48px; 
+ margin-left:-15px;
+}
+
+#userInfo {
+  width:200px;
+}
+.marker {
+  display: none;
+}
+
+#d1,#d2,#d3,#d4,#d5,#d6 {
+  display:inline-block;
+}
+
+#map { 
+  height: 100%;
+}
+
+select {
+  width: 150px;
+}
+
+.label {
+  float:left;
+  margin-right:10px;
+}
+
+.userInfo {
+  
+}
+
+td {
+  padding: 5px;
+}
+
+.restaurantName{
+  font-size:20px;
+}
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+</head>
+<div id="demo">
+<body>
+<table>
+<tr>
+<td>
+<img src="images/logo.png" />
+</td>
+<td>
+<div id="title">atatouille</div>
+</td>
+<td>
+</td>
+<td>
+<div class="label">Select User<br />
+<select id="user" onchange="getUser()"></select>
+</div>
+</td>
+<td id="userInfo"></td>
+<td id="userDishes"></td>
+</tr>
+</table>
+</div>
+<hr />
+<div id="content"><hr /></div>
+<div id="map"></div>
+<script>
+
+$(document).ready(function() 
+{
+  $.ajax({
+    url: 'init.php',
+    type: 'post',
+    success: function(response) { 
+      document.getElementById("user").innerHTML = response; 
+      getUser();
+    }
+  });
+});
+
+function getUser() {
+  $.ajax({
+    url: 'getUser.php',
+    type: 'post',
+    data: { "user_id": $("#user").val()},
+    success: function(response) { 
+      document.getElementById("userInfo").innerHTML = response; 
+    }
+  });
+  $.ajax({
+    url: 'getDishes.php',
+    type: 'post',
+    data: { "user_id": $("#user").val()},
+    success: function(response) { 
+      document.getElementById("userDishes").innerHTML = response; 
+      getRecommendations(); 
+    }
+  }); 
+  
+}
+  
+var locationMarker;
+
+var map;
+
+var markers = [];
+
+function initMap() {
+  map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 12,
+    center: {lat: 33.4500, lng: -112.0667}
+  });
+
+  setMarkers(map);
+
+}
+
+var recommendations = [
+  ["N/A",33.4500,-112.0667],
+  ["N/A",33.4500,-112.0667],
+  ["N/A",33.4500,-112.0667],
+  ["N/A",33.4500,-112.0667],
+  ["N/A",33.4500,-112.0667],
+  ["N/A",33.4500,-112.0667]
+];
+
+function setMarkers(map) {
+  
+  var myLatlng = new google.maps.LatLng(33.4500,-112.0667);
+  
+  var location = {
+    url: 'images/location.png',
+    size: new google.maps.Size(48, 48),
+    origin: new google.maps.Point(0, 0),
+    anchor: new google.maps.Point(24, 24)
+  };
+  
+  // Place a draggable marker on the map
+  locationMarker = new google.maps.Marker({
+    position: myLatlng,
+    map: map,
+    icon: location,
+    draggable:true,
+    title:"Drag me!"
+  });
+
+  google.maps.event.addListener(locationMarker, 'dragend', function (event) {
+    getRecommendations();
+  });
+  
+  google.maps.event.addListenerOnce(map, 'bounds_changed', function(){
+    getRecommendations();
+  });
+
+}
+
+function displayRecommendations() {
+  
+  markers.forEach(function(marker){
+    marker.setMap(null);
+  });
+  
+  var images = [
+    {
+      url: 'images/icon1.png',
+      size: new google.maps.Size(64, 86),
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(32, 86)
+    },
+    {
+      url: 'images/icon2.png',
+      size: new google.maps.Size(54, 73),
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(27, 73)
+    },
+    {
+      url: 'images/icon3.png',
+      size: new google.maps.Size(44, 59),
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(22, 59)
+    },
+    {
+      url: 'images/icon4.png',
+      size: new google.maps.Size(34, 46),
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(17, 46)
+    },
+    {
+      url: 'images/icon5.png',
+      size: new google.maps.Size(24, 32),
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(12, 32)
+    },
+    {
+      url: 'images/icon5.png',
+      size: new google.maps.Size(24, 32),
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(12, 32)
+    }
+  ];
+
+  for (var i = 0; i < recommendations.length; i++) {
+    var recommendation = recommendations[i];
+    var marker = new google.maps.Marker({
+      position: {lat: recommendation[1], lng: recommendation[2]},
+      map: map,
+      icon: images[i],
+      title: recommendation[0],
+      zIndex: recommendation[10-i]
+    });
+    markers.push(marker);
+  }
+}
+
+function getRecommendations() {
+  var user_id = document.getElementById("user").value;
+  var lat = 33.4500;
+  var lng = -112.0667;
+  if(locationMarker){
+    lat = locationMarker.getPosition().lat();
+    lng = locationMarker.getPosition().lng();
+  }
+
+  console.log(user_id + ", " + lat + ", " + lng);
+  $.ajax({
+      url: 'recommender.php',
+      type: 'post',
+      data: { "user_id": user_id,"lat":lat,"lng":lng},
+      success: function(response) { 
+        document.getElementById("content").innerHTML = response; 
+          recommendations = [
+            [$('#r1 .restaurantName').html(),parseFloat($('#r1 > #latitude').text()),parseFloat($('#r1 > #longitude').text())],
+            [$('#r2 .restaurantName').text(),parseFloat($('#r2 > #latitude').text()),parseFloat($('#r2 > #longitude').text())],
+            [$('#r3 .restaurantName').text(),parseFloat($('#r3 > #latitude').text()),parseFloat($('#r3 > #longitude').text())],
+            [$('#r4 .restaurantName').text(),parseFloat($('#r4 > #latitude').text()),parseFloat($('#r4 > #longitude').text())],
+            [$('#r5 .restaurantName').text(),parseFloat($('#r5 > #latitude').text()),parseFloat($('#r5 > #longitude').text())],
+            [$('#r6 .restaurantName').text(),parseFloat($('#r6 > #latitude').text()),parseFloat($('#r6 > #longitude').text())]
+          ];
+          
+          displayRecommendations();
+      }
+  });
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD_7SbUdTBoW594HOcc-VGzdUxfPMue7wQ&signed_in=true&callback=initMap"></script>
+</body>
+</html>
